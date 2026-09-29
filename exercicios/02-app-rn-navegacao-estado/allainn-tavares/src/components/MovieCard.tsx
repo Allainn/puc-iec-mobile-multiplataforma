@@ -9,8 +9,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { Movie } from '@/types/movie';
 import { posterUrl } from '@/utils/poster-url';
 import type { RootStackParamList } from '@/routes/RootStack';
-// TODO [TASK 6]: import store de favoritos
-// import { useFavoritesStore } from '@/store/favoritesStore';
+import { useFavoritesStore } from '@/store/favoritesStore';
 // TODO [TASK 8]: import HeartButton (criar componente Reanimated)
 // import HeartButton from './HeartButton';
 
@@ -20,9 +19,10 @@ export default function MovieCard({ movie }: Props) {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const poster = posterUrl(movie.poster_path, 'w185');
 
-  // TODO [TASK 6]: ler isFavorite + toggle do store
-  // const isFav = useFavoritesStore((s) => s.isFavorite(movie.id));
-  // const toggle = useFavoritesStore((s) => s.toggle);
+  // Seletor por filme: o card só redesenha quando o favorito DELE muda
+  // (o seletor devolve um boolean), não quando outro filme é favoritado.
+  const isFav = useFavoritesStore((s) => s.isFavorite(movie.id));
+  const toggle = useFavoritesStore((s) => s.toggle);
 
   return (
     <Pressable
@@ -40,12 +40,14 @@ export default function MovieCard({ movie }: Props) {
       {/* TODO [TASK 8]: substituir por <HeartButton active={isFav} onPress={() => toggle(movie.id)} /> */}
       <Pressable
         onPress={(e) => {
-          e.stopPropagation();
-          // TODO [TASK 6]: toggle(movie.id)
+          e.stopPropagation(); // o toque no coração não abre o detalhe
+          toggle(movie.id);
         }}
+        accessibilityRole="button"
+        accessibilityLabel={isFav ? 'Remover dos favoritos' : 'Favoritar'}
         style={styles.heart}
       >
-        <Text style={styles.heartIcon}>🤍</Text>
+        <Text style={styles.heartIcon}>{isFav ? '❤️' : '🤍'}</Text>
       </Pressable>
     </Pressable>
   );
