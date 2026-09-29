@@ -2,9 +2,10 @@
 //
 // Exemplo de teste pra Zustand store.
 //
-// TODO [TASK 4]: expandir com mais 2 testes (decrement, reset, edge cases) usando IA.
+// TASK 4: testes de decrement, reset e edge cases gerados com auxílio de IA
+// (Claude Code) a partir do prompt abaixo e revisados.
 //
-// Prompt sugerido pra IA:
+// Prompt usado:
 //   "Adicione testes Jest pra useCounterStore cobrindo:
 //    - decrement diminui count em 1
 //    - reset volta count pra 0 após mutações
@@ -23,6 +24,35 @@ describe('counterStore', () => {
     expect(useCounterStore.getState().count).toBe(1);
   });
 
-  // TODO [TASK 4]: adicione testes pra decrement, reset, edge cases (use IA).
-  // Mínimo 3 testes verdes pra CI passar.
+  test('decrement diminui count em 1', () => {
+    useCounterStore.setState({ count: 5 });
+    useCounterStore.getState().decrement();
+    expect(useCounterStore.getState().count).toBe(4);
+  });
+
+  test('reset volta count pra 0 após mutações', () => {
+    const { increment, decrement, reset } = useCounterStore.getState();
+    increment();
+    increment();
+    decrement();
+    expect(useCounterStore.getState().count).toBe(1);
+
+    reset();
+    expect(useCounterStore.getState().count).toBe(0);
+    // set() faz merge raso: o reset troca só o count, as actions continuam no store
+    expect(typeof useCounterStore.getState().increment).toBe('function');
+  });
+
+  test('100 increments seguidos resultam em count=100', () => {
+    // a mesma referência de increment é chamada 100 vezes: só passa se cada
+    // chamada ler o estado mais recente (aqui, via set com função)
+    const { increment } = useCounterStore.getState();
+    for (let i = 0; i < 100; i++) increment();
+    expect(useCounterStore.getState().count).toBe(100);
+  });
+
+  test('decrement a partir de 0 fica negativo (store não tem limite inferior)', () => {
+    useCounterStore.getState().decrement();
+    expect(useCounterStore.getState().count).toBe(-1);
+  });
 });
