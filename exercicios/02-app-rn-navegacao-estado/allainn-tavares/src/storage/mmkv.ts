@@ -7,36 +7,31 @@
 //
 // Doc: https://github.com/mrousavy/react-native-mmkv
 
-// TODO [TASK 7]: implementar storage com polyfill web
-//
-// Estrutura esperada:
-//
-// const isWeb = typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
-//
-// let getString: (k: string) => string | undefined;
-// let setItem: (k: string, v: string) => void;
-// let deleteItem: (k: string) => void;
-//
-// if (isWeb) {
-//   getString = (k) => window.localStorage.getItem(k) ?? undefined;
-//   setItem = (k, v) => window.localStorage.setItem(k, v);
-//   deleteItem = (k) => window.localStorage.removeItem(k);
-// } else {
-//   const { MMKV } = require('react-native-mmkv');
-//   const storage = new MMKV({ id: 'favorites-store' });
-//   getString = (k) => storage.getString(k);
-//   setItem = (k, v) => storage.set(k, v);
-//   deleteItem = (k) => storage.delete(k);
-// }
-//
-// export const mmkvStorage = {
-//   getItem: (name: string) => getString(name) ?? null,
-//   setItem: (name: string, value: string) => setItem(name, value),
-//   removeItem: (name: string) => deleteItem(name),
-// };
+// Navegador tem localStorage; iOS/Android não. No Jest também não tem, então
+// os testes caem no MMKV, que se auto-mocka em memória quando roda no Jest.
+const isWeb = typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
 
+let getString: (k: string) => string | undefined;
+let setItem: (k: string, v: string) => void;
+let deleteItem: (k: string) => void;
+
+if (isWeb) {
+  getString = (k) => window.localStorage.getItem(k) ?? undefined;
+  setItem = (k, v) => window.localStorage.setItem(k, v);
+  deleteItem = (k) => window.localStorage.removeItem(k);
+} else {
+  // require dentro do else: no navegador o código do MMKV nem é executado
+  const { MMKV } = require('react-native-mmkv') as typeof import('react-native-mmkv');
+  const storage = new MMKV({ id: 'favorites-store' });
+  getString = (k) => storage.getString(k);
+  setItem = (k, v) => storage.set(k, v);
+  deleteItem = (k) => storage.delete(k);
+}
+
+// Mesma interface do Storage da web (getItem/setItem/removeItem) e síncrona
+// nas duas plataformas: quem usa não precisa saber qual está por baixo.
 export const mmkvStorage = {
-  getItem: (_name: string) => null,
-  setItem: (_name: string, _value: string) => {},
-  removeItem: (_name: string) => {},
+  getItem: (name: string): string | null => getString(name) ?? null,
+  setItem: (name: string, value: string) => setItem(name, value),
+  removeItem: (name: string) => deleteItem(name),
 };
