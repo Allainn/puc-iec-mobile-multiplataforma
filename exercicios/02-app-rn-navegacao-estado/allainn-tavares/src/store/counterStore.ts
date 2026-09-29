@@ -11,20 +11,20 @@
 
 import { create } from 'zustand';
 
+// Estado + actions no mesmo tipo: o store guarda os dados e as funções que os alteram.
 type CounterState = {
   count: number;
-  // TODO [TASK 1]: declarar tipos das actions abaixo
-  //   increment: () => void;
-  //   decrement: () => void;
-  //   reset: () => void;
+  increment: () => void;
+  decrement: () => void;
+  reset: () => void;
 };
 
-// TODO [TASK 1]: implementar store com create<CounterState>((set) => ({...}))
-// - count inicial = 0
-// - increment: set((s) => ({ count: s.count + 1 }))
-// - decrement: set((s) => ({ count: s.count - 1 }))
-// - reset: set({ count: 0 })
+// set() faz merge raso: só a chave devolvida muda, as actions continuam no store.
+// - set((s) => ...) quando o próximo valor depende do atual (lê o estado mais recente)
+// - set({ ... }) quando o valor é fixo
 export const useCounterStore = create<CounterState>((set) => ({
   count: 0,
-  // ← preenche aqui
+  increment: () => set((s) => ({ count: s.count + 1 })),
+  decrement: () => set((s) => ({ count: s.count - 1 })),
+  reset: () => set({ count: 0 }),
 }));
