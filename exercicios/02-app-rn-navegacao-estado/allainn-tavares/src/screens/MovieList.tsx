@@ -11,11 +11,10 @@ import { usePopularMovies } from '@/queries/movies/get-popular-movies';
 import { useCounterStore } from '@/store/counterStore';
 import { isTokenError, isTokenMissing } from '@/services/api';
 import TokenMissingScreen from '@/components/TokenMissingScreen';
-// TODO [TASK 3]: descomentar quando renderizar MovieCard
-// import MovieCard from '@/components/MovieCard';
+import MovieCard from '@/components/MovieCard';
 
 export default function MovieList() {
-  const { data, isLoading, error, refetch } = usePopularMovies();
+  const { data, isLoading, isRefetching, error, refetch } = usePopularMovies();
   const count = useCounterStore((s) => s.count);
 
   // Tela amigável quando token TMDB não foi configurado ou está inválido.
@@ -39,27 +38,22 @@ export default function MovieList() {
     );
   }
 
-  // TODO [TASK 3]: substituir o stub abaixo por FlatList
-  //
-  //   <FlatList
-  //     data={data?.results ?? []}
-  //     keyExtractor={(item) => String(item.id)}
-  //     renderItem={({ item }) => <MovieCard movie={item} />}
-  //     onRefresh={refetch}
-  //     refreshing={isLoading}
-  //   />
+  // FlatList é virtualizada: só monta os itens perto da área visível.
+  // refreshing usa isRefetching, não isLoading: isLoading só vale na 1ª carga
+  // (já tratada no return acima), então o pull-to-refresh nunca mostraria o spinner.
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Counter: {count}</Text>
-      <Text>TODO [TASK 3]: renderizar FlatList aqui</Text>
-      <Text style={styles.hint}>{data?.results?.length ?? 0} filmes carregados</Text>
-    </View>
+    <FlatList
+      data={data?.results ?? []}
+      keyExtractor={(item) => String(item.id)}
+      renderItem={({ item }) => <MovieCard movie={item} />}
+      ListHeaderComponent={<Text style={styles.header}>Counter: {count}</Text>}
+      onRefresh={refetch}
+      refreshing={isRefetching}
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, gap: 12 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  title: { fontSize: 24, fontWeight: 'bold' },
-  hint: { color: '#666', fontSize: 12 },
+  header: { fontSize: 24, fontWeight: 'bold', padding: 16 },
 });
