@@ -12,10 +12,9 @@ type FavoritesState = {
   ids: number[];
   toggle: (id: number) => void;
   isFavorite: (id: number) => boolean;
-  // TODO [TASK 5]: declarar tipos das actions add, remove, clear
-  //   add: (id: number) => void;
-  //   remove: (id: number) => void;
-  //   clear: () => void;
+  add: (id: number) => void;
+  remove: (id: number) => void;
+  clear: () => void;
 };
 
 // TODO [TASK 7]: ler estado inicial do storage (persist load)
@@ -27,14 +26,19 @@ type FavoritesState = {
 //   } catch { return []; }
 // };
 
-// TODO [TASK 5]: implementar actions abaixo
+// ids nunca é mutado (push/splice): cada mudança cria um array novo, porque
+// Zustand e React detectam mudança por referência. Quando não há o que mudar,
+// set devolve o próprio estado e ninguém é notificado.
 export const useFavoritesStore = create<FavoritesState>((set, get) => ({
   ids: [], // TODO [TASK 7]: trocar por loadInitial() pra carregar do storage
+  add: (id) => set((s) => (s.ids.includes(id) ? s : { ids: [...s.ids, id] })),
+  remove: (id) =>
+    set((s) => (s.ids.includes(id) ? { ids: s.ids.filter((x) => x !== id) } : s)),
+  clear: () => set({ ids: [] }),
   toggle: (id) => {
-    // TODO [TASK 5]: implementar
-    // - se id já existe em ids → remover
-    // - se não existe → adicionar
-    // Dica: usa get() pra ler ids atual, set({ ids: ... }) pra atualizar
+    const { isFavorite, add, remove } = get();
+    if (isFavorite(id)) remove(id);
+    else add(id);
   },
   isFavorite: (id) => get().ids.includes(id),
 }));
