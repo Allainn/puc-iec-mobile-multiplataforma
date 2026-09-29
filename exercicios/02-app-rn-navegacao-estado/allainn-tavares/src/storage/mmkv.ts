@@ -9,18 +9,26 @@
 
 // Navegador tem localStorage; iOS/Android não. No Jest também não tem, então
 // os testes caem no MMKV, que se auto-mocka em memória quando roda no Jest.
-const isWeb = typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+// Com os dados do site bloqueados, só ler window.localStorage já lança erro:
+// aí cai no MMKV, que na web guarda em memória, em vez de derrubar o app.
+const hasLocalStorage = (() => {
+  try {
+    return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+  } catch {
+    return false;
+  }
+})();
 
 let getString: (k: string) => string | undefined;
 let setItem: (k: string, v: string) => void;
 let deleteItem: (k: string) => void;
 
-if (isWeb) {
+if (hasLocalStorage) {
   getString = (k) => window.localStorage.getItem(k) ?? undefined;
   setItem = (k, v) => window.localStorage.setItem(k, v);
   deleteItem = (k) => window.localStorage.removeItem(k);
 } else {
-  // require dentro do else: no navegador o código do MMKV nem é executado
+  // require dentro do else: com localStorage disponível, o código do MMKV nem é executado
   const { MMKV } = require('react-native-mmkv') as typeof import('react-native-mmkv');
   const storage = new MMKV({ id: 'favorites-store' });
   getString = (k) => storage.getString(k);

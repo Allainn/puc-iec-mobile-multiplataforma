@@ -108,3 +108,39 @@ describe('favoritesStore — persistência', () => {
     });
   });
 });
+
+// Web: o Jest roda sem localStorage, então aqui ele é simulado no window.
+describe('favoritesStore — storage na web', () => {
+  afterEach(() => {
+    delete (window as any).localStorage;
+  });
+
+  test('com localStorage disponível, grava nele', () => {
+    const mem = new Map<string, string>();
+    (window as any).localStorage = {
+      getItem: (k: string) => mem.get(k) ?? null,
+      setItem: (k: string, v: string) => void mem.set(k, v),
+      removeItem: (k: string) => void mem.delete(k),
+    };
+    jest.isolateModules(() => {
+      const { useFavoritesStore: store } = require('../src/store/favoritesStore');
+      store.getState().add(42);
+    });
+    expect(mem.get(STORAGE_KEY)).toBe('[42]');
+  });
+
+  test('com localStorage bloqueado, o app não quebra e usa o MMKV', () => {
+    // navegador com dados do site bloqueados: ler a propriedade lança erro
+    Object.defineProperty(window, 'localStorage', {
+      configurable: true,
+      get() {
+        throw new Error('SecurityError: acesso ao localStorage negado');
+      },
+    });
+    jest.isolateModules(() => {
+      const { useFavoritesStore: store } = require('../src/store/favoritesStore');
+      store.getState().add(7);
+      expect(store.getState().isFavorite(7)).toBe(true);
+    });
+  });
+});
