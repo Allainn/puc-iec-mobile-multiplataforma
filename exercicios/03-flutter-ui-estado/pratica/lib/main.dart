@@ -13,6 +13,7 @@ import 'screens/home_screen.dart';
 import 'theme/app_theme.dart';
 
 // TASK 3: lib/firebase_options.dart foi gerado pelo `flutterfire configure` (projeto filmes-flutter-allainn, web)
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
@@ -23,10 +24,10 @@ Future<void> main() async {
   // TASK 3: conecta o app ao projeto Firebase antes de qualquer uso de Firestore/Remote Config
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // TODO [TASK 10 · 🧑‍🏫 EM AULA · fácil]: ligue a persistência OFFLINE do Firestore (logo depois do initializeApp):
-  //   FirebaseFirestore.instance.settings = const Settings(persistenceEnabled: true);
-  // (precisa de: import 'package:cloud_firestore/cloud_firestore.dart';)
-  // Efeito: escritas feitas sem rede ficam numa fila local do Firestore e sincronizam sozinhas na volta.
+  // TASK 10: persistência OFFLINE do Firestore (na web vem desligada). Precisa vir antes do 1º uso
+  // do Firestore. Efeito: leituras saem do cache local e escritas feitas sem rede ficam numa fila
+  // local do Firestore, que sincroniza sozinha na volta.
+  FirebaseFirestore.instance.settings = const Settings(persistenceEnabled: true);
 
   runApp(ProviderScope(
     overrides: [storeProvider.overrideWithValue(SharedPrefsStore(prefs))],
