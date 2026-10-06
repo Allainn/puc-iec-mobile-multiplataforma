@@ -8,8 +8,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../state/favorites.dart';
-// TODO [TASK 8]: descomente quando o remote_config.dart estiver pronto
-// import '../services/remote_config.dart';
+import '../services/remote_config.dart';
+import '../theme/app_theme.dart';
 import '../widgets/movie_list.dart';
 import '../widgets/offline_banner.dart';
 import '../widgets/offline_toggle.dart';
@@ -43,13 +43,55 @@ class HomeScreen extends ConsumerWidget {
         // ignore: prefer_const_literals_to_create_immutables
         children: [
           const OfflineBanner(), // TASK 11 — aviso de offline
-          // ── Ex5 · TASK 8 — banner Remote Config · 🧑‍💻 EM CASA (sozinho) ────────────────
-          // Vire esta parte um FutureBuilder<String> (ou StatefulWidget com initState)
-          // que chama fetchBannerMessage() de '../services/remote_config.dart' e
-          // renderiza o texto retornado num Container no topo da lista.
+          const _RemoteBanner(), // Ex5 · TASK 8 — texto vindo do Remote Config
           const Expanded(child: MovieList()), // lista vinda do repositório (cache-first)
         ],
       ),
+    );
+  }
+}
+
+// ── Ex5 · TASK 8 — banner com o texto do Remote Config ───────────────────────────────────────
+// StatefulWidget para buscar UMA vez (no initState). Se o FutureBuilder chamasse
+// fetchBannerMessage() direto no build da HomeScreen, cada toque no ♥ (que redesenha a tela)
+// faria uma nova busca no Firebase.
+class _RemoteBanner extends StatefulWidget {
+  const _RemoteBanner();
+
+  @override
+  State<_RemoteBanner> createState() => _RemoteBannerState();
+}
+
+class _RemoteBannerState extends State<_RemoteBanner> {
+  late final Future<String> _message;
+
+  @override
+  void initState() {
+    super.initState();
+    _message = fetchBannerMessage();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<String>(
+      future: _message,
+      builder: (context, snapshot) {
+        final text = snapshot.data;
+        if (text == null || text.isEmpty) return const SizedBox.shrink(); // carregando: nada na tela
+        return Container(
+          width: double.infinity,
+          margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            gradient: AppColors.brandGradient,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Text(
+            text,
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          ),
+        );
+      },
     );
   }
 }
