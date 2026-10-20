@@ -68,6 +68,11 @@ export function HomeScreen({ activeTab, isFavorite, toggleFavorite }: Props) {
     return (
       <main style={styles.main} className="main-content">
         <AppHeader title="★ Favoritos" />
+        {!isOnline && (
+          <div style={{ background: '#C2410C', color: '#fff', padding: '8px 16px', textAlign: 'center', fontSize: 14 }}>
+            📡 Offline — exibindo dados do cache
+          </div>
+        )}
         {favMovies.length === 0 ? (
           <p style={{ color: '#90a4ae', textAlign: 'center', padding: '40px 0', fontSize: 15 }}>
             {isEmpty ? 'Nenhum filme carregado ainda.' : 'Nenhum favorito ainda — toque ★ em um filme.'}
