@@ -50,7 +50,30 @@ export default defineConfig({
         //        só entra no cache se você liberar o status 0 em cacheableResponse
         //
         // Referências: slides "Cache strategies" e "vite-plugin-pwa" · web.dev/learn/pwa (módulo Caching)
-        runtimeCaching: [],
+        runtimeCaching: [
+          {
+            // (a) API: dado que muda (lista de populares) → rede primeiro, cache como reserva offline
+            urlPattern: /^https:\/\/api\.themoviedb\.org\/.*/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'tmdb-api',
+              networkTimeoutSeconds: 3,
+              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 },
+              cacheableResponse: { statuses: [200] },
+            },
+          },
+          {
+            // (b) Pôsteres: vêm de image.tmdb.org (não do host da API) e não mudam → cache primeiro.
+            // <img> de outra origem sem CORS chega opaca (status 0): sem liberar o 0, nada é guardado.
+            urlPattern: /^https:\/\/image\.tmdb\.org\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'tmdb-images',
+              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 7, purgeOnQuotaError: true },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
       },
     }),
   ],
