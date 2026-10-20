@@ -8,30 +8,28 @@
 
 ## 1. Site comum × PWA — o que EU vi (3 diferenças)
 
-Comparei o PWA do professor (`https://pwa-tmdb-aula4.vercel.app`) com o site do TMDB (`https://www.themoviedb.org`), no Edge/Chrome do Windows, com DevTools aberto.
+Comparei o PWA do professor (`https://pwa-tmdb-aula4.vercel.app`) com o site do TMDB (`https://www.themoviedb.org`) no Microsoft Edge 155, em tela de celular (420 × 800), com o DevTools aberto. Para simular o modo avião usei **Rede → Offline** do próprio DevTools.
 
 | # | Site comum (themoviedb.org) | PWA (pwa-tmdb-aula4) | Print/evidência |
 |---|---|---|---|
-| 1 | **Sem rede + recarregar:** o navegador mostra a própria página de erro ("Sem internet"). Nada do site carrega. | O app abre normalmente: o Service Worker entrega o app shell do precache e a lista vem do cache (`tmdb-api` + IndexedDB), com os pôsteres (`tmdb-images`). | [01](evidencias/01-site-comum-offline.png) · [02](evidencias/02-pwa-offline.png) |
-| 2 | **Application → Service Workers / Cache Storage:** nenhum SW registrado (o HTML não registra um e `/sw.js` dá 404) e nenhum cache do app. | SW `sw.js` **activated and running**; Cache Storage com `workbox-precache`, `tmdb-api` e `tmdb-images`. | [03](evidencias/03-pwa-service-worker.png) |
-| 3 | **Fechar e reabrir (Network):** cada reabertura busca o HTML e os scripts no servidor; sem rede, nem o atalho instalado abre. | Na reabertura, o app shell vem do SW (coluna **Size** = `(ServiceWorker)`). O manifest (nome, ícones 192/512, `display: standalone`) permite **Instalar**: abre em janela própria, sem barra de endereço, e funciona sem rede. | [04](evidencias/04-pwa-reabrir-network.png) · [05](evidencias/05-pwa-instalado.png) |
+| 1 | **Sem rede + recarregar:** o navegador mostra a página de erro dele ("Parece que você não está conectado à Internet", `ERR_INTERNET_DISCONNECTED`). O documento `www.themoviedb.org` falha (linha vermelha, sem status). | O app abre normalmente. O documento, o JS, o CSS e o manifest vêm com **200 do `(ServiceWorker)`**, a lista aparece e os pôsteres carregam. A página indica **0 B transferidos**. | [01](evidencias/01-site-comum-offline.png) · [02](evidencias/02-pwa-offline.png) |
+| 2 | **Aplicativo → Service workers:** vazio, nenhum SW registrado para a origem. | `sw.js` **ativado e em execução**, controlando a página (ciclo Install → Wait → Activate). Em Armazenamento em Cache aparece o `workbox-precache` com o app shell. | [03a](evidencias/03a-site-comum-service-workers.png) · [03b](evidencias/03b-pwa-service-workers.png) · [03c](evidencias/03c-pwa-cache-storage.png) |
+| 3 | **Fechar e reabrir (Rede, online):** 131 requisições, **147 kB transferidos**, carga completa em **6,13 s**. Scripts de terceiros (analytics, telemetria, banner de cookies) vão ao servidor de novo. | 17 requisições, **0 B transferidos**, carga em **401 ms**. O documento e o JS saem do `(ServiceWorker)` e os pôsteres do cache do navegador. | [04a](evidencias/04a-site-comum-reabrir-network.png) · [04b](evidencias/04b-pwa-reabrir-network.png) |
+
+**O que me surpreendeu:**
+- **Instalar não foi a diferença.** O TMDB também tem manifest com `display: standalone`, e o Edge não aponta erro de instalabilidade em nenhum dos dois ([05a](evidencias/05a-site-comum-manifesto.png) · [05b](evidencias/05b-pwa-manifesto.png)). O que separa os dois é o Service Worker: o TMDB instalado continuaria dependendo da rede para abrir.
+- **O PWA do professor não tem `runtimeCaching`.** O Cache Storage dele só tem o `workbox-precache` ([03c](evidencias/03c-pwa-cache-storage.png)). Offline, a lista vem do IndexedDB e os pôsteres saem do cache HTTP do navegador (`(memory cache)` / `(disk cache)` no print 02), que o navegador pode descartar a qualquer momento. O TODO 2 resolve isso.
 
 ## 2. Prova do offline no SEU build
 
-Build local: `npm run build && npm run preview` → http://localhost:4173, recarregado 1× para o SW assumir a página.
+Build local: `npm run build && npm run preview` → http://localhost:4173. Na 1ª visita aparece "✅ App pronto para uso offline" ([08](evidencias/08-pronto-offline.png)). Depois recarreguei uma vez para o SW controlar a página e rolei a lista para baixar os pôsteres.
 
-- [ ] Print do **DevTools → Application → Cache Storage** com `tmdb-api` e `tmdb-images` (com itens): [06-cache-storage.png](evidencias/06-cache-storage.png)
-- [ ] Print do app em **modo avião** carregando a lista: [07-modo-aviao.png](evidencias/07-modo-aviao.png) (DevTools → Network → Offline → recarregar)
-- [x] Print do aviso **"Nova versão disponível"**: [claude-04-nova-versao.png](evidencias/claude-04-nova-versao.png) → depois de **Atualizar**, a página recarrega com o build novo ([claude-05-atualizado.png](evidencias/claude-05-atualizado.png), título de teste "Filmes Populares v2", revertido depois)
-
-Também conferido no meu build (prints `claude-*`, ver seção 4):
-
-| O que | Resultado | Print |
-|---|---|---|
-| 1ª instalação do SW (TODO 3) | aviso "✅ App pronto para uso offline" | [claude-01](evidencias/claude-01-pronto-offline.png) |
-| Cache Storage depois de rolar a lista (TODO 2) | `tmdb-api`: 2 respostas · `tmdb-images`: 28 pôsteres · precache: 8 arquivos | — (contagem lida com `caches.keys()`) |
-| Rede desligada (página **e** SW) + recarregar | 20 filmes e 20 pôsteres carregados, todos vindos do cache | [claude-02](evidencias/claude-02-offline-inicio.png) |
-| Aba ★ Favoritos offline (TODOs 4 e 5) | favorito listado + faixa "📡 Offline — exibindo dados do cache" | [claude-03](evidencias/claude-03-offline-favoritos.png) |
+- [x] Print do **DevTools → Application → Cache Storage** com `tmdb-api` e `tmdb-images` (com itens):
+  - [06a](evidencias/06a-cache-storage-tmdb-api.png): `tmdb-api` com 2 respostas `cors` de `/3/movie/popular?language=pt-BR&page=1` e `page=2`.
+  - [06b](evidencias/06b-cache-storage-tmdb-images.png): `tmdb-images` com **40 pôsteres**, todos `opaque` (`image.tmdb.org` sem CORS). Sem o `cacheableResponse: { statuses: [0, 200] }` nenhum deles teria entrado no cache.
+- [x] Print do app em **modo avião** carregando a lista ([07](evidencias/07-modo-aviao.png)): com Rede → Offline e recarregando, as 29 requisições respondem **200 do `(ServiceWorker)`** com 0 B transferidos: documento, JS, `popular?language=pt-BR&page=1` e os pôsteres.
+  - Também offline: a lista com os pôsteres ([09](evidencias/09-offline-inicio.png)) e a aba ★ Favoritos com a faixa "📡 Offline — exibindo dados do cache" ([10](evidencias/10-offline-favoritos.png)).
+- [x] Print do aviso **"Nova versão disponível"** ([11](evidencias/11-nova-versao.png)). Com o preview aberto, mudei o título para "Filmes Populares v2", rodei `npm run build` de novo e pedi `update()` ao SW. O SW novo ficou em `waiting` e o aviso apareceu com **Atualizar / Depois**. Em Atualizar, a página recarregou com o título novo ([12](evidencias/12-atualizado.png)). Depois reverti o título.
 
 Testes: `npm test` com **19/19** verdes: 8 modelos do professor (`01-MovieCard` e `03-useFavorites`), 2 do TODO 1, 1 caso extra de `page` no `02-tmdb-service` e 8 autorais (`04-useOfflineStatus` e `05-favorites-tab`).
 
@@ -48,10 +46,10 @@ Usei IA? Onde e como? (uso transparente é incentivado)
 Sim. Usei o **Claude Code** (Anthropic, modelo Claude Opus 5.5) como par de programação:
 
 - **Código:** implementou os TODOs 1 a 5, com um commit por TODO, e escreveu os testes extras (caso 3 de `02-tmdb-service` e os arquivos `04-useOfflineStatus` e `05-favorites-tab`). Também rodou o autograder do professor localmente (12/12).
-- **Verificação:** conferiu o build num Edge headless pelo Chrome DevTools Protocol: Cache Storage, rede desligada na página e no Service Worker, aviso de nova versão. Os prints `evidencias/claude-*.png` saíram dessa verificação.
-- **Texto:** rascunhou este `ENTREGA.md`.
+- **Evidências:** tirou todos os prints desta entrega. Ele controlou um Edge headless pelo Chrome DevTools Protocol e abriu o **DevTools do próprio Edge** (frontend embutido) numa aba ao lado. Os painéis, os números e o "Offline" escolhido em Rede são do DevTools de verdade. Por ser headless, não houve instalação em janela própria; no lugar dela, comparei os painéis Manifesto.
+- **Texto:** redigiu este `ENTREGA.md` a partir do que aparece nos prints, incluindo as duas observações da seção 1.
 
-Eu revisei o código e as decisões (hosts e estratégias de cache, `cacheableResponse` com status 0 para os pôsteres opacos, `prompt` no lugar de `autoUpdate`), rodei `npm test`, `npm run build` e `npm run preview` na minha máquina, tirei os prints do DevTools (01 a 07) e revisei a reflexão.
+Revisei o código, as decisões (hosts e estratégias de cache, status 0 para os pôsteres opacos, `prompt` no lugar de `autoUpdate`), os prints e a reflexão antes de entregar.
 
 ## Referências
 
