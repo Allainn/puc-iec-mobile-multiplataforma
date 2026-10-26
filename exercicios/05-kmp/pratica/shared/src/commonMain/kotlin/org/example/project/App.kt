@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.example.project.data.Movie
 import org.example.project.data.TmdbApi
+import kotlin.math.roundToInt
 
 // ─────────────────────────────────────────────────────────────────────────────
 // App — Composable raiz compartilhado entre Android, iOS e Web.
@@ -102,19 +103,65 @@ private fun MovieList(movies: List<Movie>) {
 @Composable
 private fun MovieCard(movie: Movie) {
     // ── TODO 3 ──────────────────────────────────────────────────────────────
-    // Construa o card do filme. Sugestão de layout (Card > Row):
-    //   - Box à esquerda (56x84dp, cantos arredondados 6dp, background
-    //     MaterialTheme.colorScheme.primaryContainer) com a inicial do
-    //     título centralizada (placeholder de poster, sem imagem real)
-    //   - Column à direita (weight 1f) com: título (bold, 2 linhas max),
-    //     overview (2 linhas max), e uma Row com nota "⭐ X.X" + ano
+    // Card > Row: placeholder do poster à esquerda (Box 56x84dp com a
+    // inicial do título) e, à direita, uma Column com weight(1f), que ocupa
+    // o resto da largura. maxLines + Ellipsis mantêm todos os cards com a
+    // mesma altura, mesmo com título ou sinopse longos.
     // ────────────────────────────────────────────────────────────────────────
     Card(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = "TODO 3: card de ${movie.title}",
-            modifier = Modifier.padding(16.dp),
-        )
+        Row(
+            modifier = Modifier.padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(width = 56.dp, height = 84.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = movie.title.firstOrNull()?.uppercase() ?: "?",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = movie.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    // a API às vezes não traz sinopse em pt-BR
+                    text = movie.overview.ifBlank { "Sem sinopse em português." },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("⭐ ${formatRating(movie.voteAverage)}", style = MaterialTheme.typography.labelLarge)
+                    // releaseDate vem como "AAAA-MM-DD" (ou vazio)
+                    if (movie.releaseDate.length >= 4) {
+                        Text(movie.releaseDate.take(4), style = MaterialTheme.typography.labelLarge)
+                    }
+                }
+            }
+        }
     }
+}
+
+// Nota com 1 casa decimal (7.25 -> "7.3"). String.format só existe na JVM,
+// então não dá para usar em commonMain; a conta abaixo roda em toda plataforma.
+private fun formatRating(rating: Double): String {
+    val tenths = (rating * 10).roundToInt()
+    return "${tenths / 10}.${tenths % 10}"
 }
 
 @Composable
