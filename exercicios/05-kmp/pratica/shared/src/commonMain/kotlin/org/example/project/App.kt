@@ -76,13 +76,26 @@ private fun MovieList(movies: List<Movie>) {
     }
 
     // ── TODO 2 ──────────────────────────────────────────────────────────────
-    // Monte um LazyColumn (fillMaxSize, contentPadding 16dp,
-    // verticalArrangement spacedBy 12dp) com:
-    //   - um item de cabeçalho: Text("${movies.size} filmes populares")
-    //   - um items(movies) { movie -> MovieCard(movie) }
+    // LazyColumn só compõe os itens visíveis (equivale à FlatList do RN e ao
+    // ListView.builder do Flutter). `item {}` é o cabeçalho; `items(movies)`
+    // vira um MovieCard por filme. `key = id` deixa o Compose reaproveitar o
+    // card certo se a lista mudar.
+    // safeDrawingPadding(): o MainActivity chama enableEdgeToEdge(), então
+    // sem isso o cabeçalho ficaria embaixo da status bar no Android.
     // ────────────────────────────────────────────────────────────────────────
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("TODO 2: monte o LazyColumn com cabeçalho + itens")
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().safeDrawingPadding(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        item {
+            Text(
+                text = "${movies.size} filmes populares",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+        items(movies, key = { it.id }) { movie -> MovieCard(movie) }
     }
 }
 
